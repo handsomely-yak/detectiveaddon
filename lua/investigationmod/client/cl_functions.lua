@@ -351,25 +351,44 @@ function InvestigationMod.DrawAction( eEntity, vPosition, aAngle, sAction, iKey,
     local fDistanceAim =  vUnitPos:Dot( vAimVector )
 
     local actionFocused = InvestigationMod.HasActionFocused
-    if not ( actionFocused and IsValid( actionFocused.Entity ) and actionFocused.Action and InvestigationMod.Actions[ actionFocused.Entity ][ actionFocused.Action ] and ( actionFocused.Entity ~= eEntity or sAction ~= actionFocused.Action) ) then
-		if not InvestigationMod.Actions[ eEntity ][ sAction ].stopTime and ( fDistanceAim > 0.95 or LocalPlayer().IsFocused  ) and fDistance < 15000 and input.IsKeyDown( iKey ) then
-			if math.min( actionClic + 0.005, 1 ) >= 1 then
-				InvestigationMod.Actions[ eEntity ][ sAction ].stopTime = CurTime()
-				fPostAction( eEntity )
-				surface.PlaySound( "investigationmod/press.mp3")
-				InvestigationMod.HasActionFocused = nil
-			else
-				InvestigationMod.HasActionFocused = InvestigationMod.HasActionFocused or {
-					Entity = eEntity,
-					Action = sAction
-				}
-				InvestigationMod.Actions[ eEntity ][ sAction ].actionClic = math.min( actionClic + 0.005, 1 )
-			end
-		else
-			InvestigationMod.HasActionFocused = nil
-			InvestigationMod.Actions[ eEntity ][ sAction ].actionClic = math.max( actionClic - 0.01, 0 )
-		end
-	end 
+    local keyDown = input.IsKeyDown( iKey )
+    local shouldCheck = ( fDistanceAim > 0.95 or LocalPlayer().IsFocused ) and fDistance < 15000
+
+    if keyDown and shouldCheck then
+                if not actionFocused or fDistanceAim > ( actionFocused.fDistanceAim or -1 ) then
+                        if actionFocused and ( actionFocused.Entity ~= eEntity or actionFocused.Action ~= sAction ) then
+                                local prev = InvestigationMod.Actions[ actionFocused.Entity ]
+                                if prev and prev[ actionFocused.Action ] then
+                                        prev[ actionFocused.Action ].actionClic = 0
+                                end
+                        end
+
+                        InvestigationMod.HasActionFocused = {
+                                Entity = eEntity,
+                                Action = sAction,
+                                fDistanceAim = fDistanceAim
+                        }
+                        actionFocused = InvestigationMod.HasActionFocused
+                end
+    end
+
+    if actionFocused and actionFocused.Entity == eEntity and actionFocused.Action == sAction then
+                if keyDown and shouldCheck and not InvestigationMod.Actions[ eEntity ][ sAction ].stopTime then
+                        if math.min( actionClic + 0.005, 1 ) >= 1 then
+                                InvestigationMod.Actions[ eEntity ][ sAction ].stopTime = CurTime()
+                                fPostAction( eEntity )
+                                surface.PlaySound( "investigationmod/press.mp3" )
+                                InvestigationMod.HasActionFocused = nil
+                        else
+                                InvestigationMod.Actions[ eEntity ][ sAction ].actionClic = math.min( actionClic + 0.005, 1 )
+                        end
+                else
+                        InvestigationMod.HasActionFocused = nil
+                        InvestigationMod.Actions[ eEntity ][ sAction ].actionClic = math.max( actionClic - 0.01, 0 )
+                end
+    else
+                InvestigationMod.Actions[ eEntity ][ sAction ].actionClic = math.max( actionClic - 0.01, 0 )
+    end
 
 	local fPercentageMove = math.Clamp( ( CurTime() - ( InvestigationMod.Actions[ eEntity ][ sAction ].stopTime or InvestigationMod.Actions[ eEntity ][ sAction ].startTime ) ) / 0.4, 0, 1 )
 
