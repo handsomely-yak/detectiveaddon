@@ -24,7 +24,7 @@ end
 
 local DeathCauses
 function metaPlayer:IM_DeathBody( tDamageInfos, pCriminal, vPos, sModel )
-	DeathCauses = DeathCauses or {
+        DeathCauses = DeathCauses or {
 		[ DMG_GENERIC ] = InvestigationMod:L( "Wounded" ),
 		[ DMG_CRUSH ] = InvestigationMod:L( "Crushed" ),
 		[ DMG_BULLET ] = InvestigationMod:L( "Shot" ),
@@ -37,16 +37,28 @@ function metaPlayer:IM_DeathBody( tDamageInfos, pCriminal, vPos, sModel )
 		[ DMG_POISON ] = InvestigationMod:L( "Poison" ),
 		[ DMG_RADIATION ] = InvestigationMod:L( "Radiation" ),
 		[ DMG_ACID ] = InvestigationMod:L( "Acid" ),
-	}
-	if ( ConfigurationMedicMod or CH_AdvMedic ) and IsValid( self.DeathRagdoll ) then
-		-- Medic mod body, don't spawn the ragdoll until he really die
-		self.IM_tDamageInfos = {}
-		self.IM_tDamageInfos.DamageInfos = tDamageInfos
-		self.IM_tDamageInfos.Pos = self:GetPos()
-		self.IM_tDamageInfos.Model = self:GetModel()
-		self.IM_tDamageInfos.Criminal = pCriminal
-		return
-	end
+        }
+
+        -- tDamageInfos can be either a CTakeDamageInfo object or a damage type number
+        local iDamageType = 0
+        if isnumber( tDamageInfos ) then
+                iDamageType = tDamageInfos
+        elseif tDamageInfos and tDamageInfos.GetDamageType then
+                local ok, dmgType = pcall( tDamageInfos.GetDamageType, tDamageInfos )
+                if ok and dmgType then
+                        iDamageType = dmgType
+                end
+        end
+
+        if ( ConfigurationMedicMod or CH_AdvMedic ) and IsValid( self.DeathRagdoll ) then
+                -- Medic mod body, don't spawn the ragdoll until he really die
+                self.IM_tDamageInfos = {}
+                self.IM_tDamageInfos.DamageType = iDamageType
+                self.IM_tDamageInfos.Pos = self:GetPos()
+                self.IM_tDamageInfos.Model = self:GetModel()
+                self.IM_tDamageInfos.Criminal = pCriminal
+                return
+        end
 
 	local eCube = ents.Create( "investigation_body" )
 	eCube:SetPos( vPos or self:GetPos() )
@@ -57,13 +69,13 @@ function metaPlayer:IM_DeathBody( tDamageInfos, pCriminal, vPos, sModel )
 	eCube:SetNoDraw( true )
 	eCube:SetCollisionGroup( COLLISION_GROUP_WORLD )
 
-	local DeathType
-	for iDmgType, sDmg in pairs( DeathCauses ) do
-		if tDamageInfos:IsDamageType( iDmgType ) then
-			DeathType = ( DeathType and DeathType .. ", " or "" ) .. sDmg 
-		end
-	end
-	eCube:SetDamageType( DeathType or "" )
+        local DeathType
+        for iDmgType, sDmg in pairs( DeathCauses ) do
+                if bit.band( iDamageType, iDmgType ) ~= 0 then
+                        DeathType = ( DeathType and DeathType .. ", " or "" ) .. sDmg
+                end
+        end
+        eCube:SetDamageType( DeathType or "" )
 
 	-- create the ragdoll
     local eRagdoll = ents.Create("prop_ragdoll")
