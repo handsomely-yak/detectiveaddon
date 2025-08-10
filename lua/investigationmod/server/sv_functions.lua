@@ -23,8 +23,8 @@ function metaPlayer:IM_CreateBullet( vPos, aAngle, sModel, sClassname, iAmmoType
 end
 
 local DeathCauses
-function metaPlayer:IM_DeathBody( tDamageInfos, pCriminal, vPos, sModel )
-        DeathCauses = DeathCauses or {
+function metaPlayer:IM_DeathBody(tDamageInfos, pCriminal, vPos, sModel)
+    DeathCauses = DeathCauses or {
 		[ DMG_GENERIC ] = InvestigationMod:L( "Wounded" ),
 		[ DMG_CRUSH ] = InvestigationMod:L( "Crushed" ),
 		[ DMG_BULLET ] = InvestigationMod:L( "Shot" ),
@@ -60,9 +60,31 @@ function metaPlayer:IM_DeathBody( tDamageInfos, pCriminal, vPos, sModel )
                 return
         end
 
-	local eCube = ents.Create( "investigation_body" )
-	eCube:SetPos( vPos or self:GetPos() )
-	eCube:SetVictimName( self:Name() )
+        -- tDamageInfos can be either a CTakeDamageInfo object or a damage type number
+        local iDamageType = 0
+        if isnumber( tDamageInfos ) then
+                iDamageType = tDamageInfos
+        elseif tDamageInfos and tDamageInfos.GetDamageType then
+                local ok, dmgType = pcall( tDamageInfos.GetDamageType, tDamageInfos )
+                if ok and dmgType then
+                        iDamageType = dmgType
+                end
+        end
+
+        if ( ConfigurationMedicMod or CH_AdvMedic ) and IsValid( self.DeathRagdoll ) then
+                -- Medic mod body, don't spawn the ragdoll until he really die
+                self.IM_tDamageInfos = {}
+                self.IM_tDamageInfos.DamageType = iDamageType
+                self.IM_tDamageInfos.Pos = self:GetPos()
+                self.IM_tDamageInfos.Model = self:GetModel()
+                self.IM_tDamageInfos.Criminal = pCriminal
+        local DeathType
+        for iDmgType, sDmg in pairs( DeathCauses ) do
+                if bit.band( iDamageType, iDmgType ) ~= 0 then
+                        DeathType = ( DeathType and DeathType .. ", " or "" ) .. sDmg
+                end
+        end
+    eCube:SetDamageType( DeathType or "" )
 	eCube:SetVictimJob( team.GetName( self:Team() ) )
 	eCube:SetDeathTime( os.time() )
 	eCube:Spawn()

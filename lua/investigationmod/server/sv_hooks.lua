@@ -14,6 +14,45 @@ hook.Add( "DoPlayerDeath", "DoPlayerDeath.InvestigationMod", function( pVictim, 
         }
 end )
 
+
+hook.Add( "PostPlayerDeath", "PostPlayerDeath.InvestigationMod", function( pVictim )
+        if not pVictim.IM_DeathInfo then return end
+
+        local pAttacker = pVictim.IM_DeathInfo.Attacker
+        local iDamageType = pVictim.IM_DeathInfo.DamageType
+        local bBullet = pVictim.IM_DeathInfo.IsBullet
+        local iAmmoType = pVictim.IM_DeathInfo.AmmoType
+
+        pVictim:IM_DeathBody( iDamageType, pAttacker )
+        pVictim.IM_DeathInfo = nil
+
+        if not IsValid( pAttacker ) or not pAttacker:IsPlayer() or pAttacker == pVictim then return end
+        if bBullet then
+                if not IsValid( pAttacker:GetActiveWeapon() ) or InvestigationMod.Configuration.DontDropBullet[ pAttacker:GetActiveWeapon():GetClass() ] then return end
+
+                pAttacker:IM_CreateBullet( pVictim:GetPos(), pAttacker:GetAngles(), pAttacker:GetActiveWeapon():GetModel(), pAttacker:GetActiveWeapon():GetClass(), iAmmoType )
+                pAttacker:IM_ShouldRegisterFootsteps( true )
+                pAttacker:IM_ShouldRegisterDoorFinger( true )
+
+                timer.Simple( InvestigationMod:GetConfig( "Time_RegisterPrints" ), function()
+                        if IsValid( pAttacker ) then
+                                pAttacker:IM_ShouldRegisterFootsteps( false )
+                                pAttacker:IM_ShouldRegisterDoorFinger( false )
+                        end
+                end )
+        end
+end )
+
+hook.Add( "DoPlayerDeath", "DoPlayerDeath.InvestigationMod", function( pVictim, pAttacker, cDamageInfos )
+        pVictim.IM_DeathInfo = {
+                Attacker = pAttacker,
+                DamageType = cDamageInfos and cDamageInfos:GetDamageType() or 0,
+                IsBullet = cDamageInfos and cDamageInfos:IsBulletDamage() or false,
+                AmmoType = cDamageInfos and cDamageInfos:GetAmmoType() or 0
+        }
+end )
+
+
 hook.Add( "PostPlayerDeath", "PostPlayerDeath.InvestigationMod", function( pVictim )
         if not pVictim.IM_DeathInfo then return end
 
