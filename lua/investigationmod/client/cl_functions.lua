@@ -352,7 +352,11 @@ function InvestigationMod.DrawAction( eEntity, vPosition, aAngle, sAction, iKey,
 
     local actionFocused = InvestigationMod.HasActionFocused
     local keyDown = input.IsKeyDown( iKey )
-    local shouldCheck = ( fDistanceAim > 0.95 or LocalPlayer().IsFocused ) and fDistance < 15000
+
+    -- prevent starting actions on other entities while an interface is focused
+    local isFocusedOnEntity = not LocalPlayer().IsFocused or not InvestigationMod.MoveView
+            or InvestigationMod.MoveView.linkedEntity == eEntity
+    local shouldCheck = ( fDistanceAim > 0.95 or LocalPlayer().IsFocused ) and fDistance < 15000 and isFocusedOnEntity
 
     if keyDown and shouldCheck then
                 if not actionFocused or fDistanceAim > ( actionFocused.fDistanceAim or -1 ) then
