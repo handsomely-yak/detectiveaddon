@@ -577,22 +577,27 @@ end
 
 local RemoveAmbiantStart
 function InvestigationMod.StopAmbiantSound()
-	if RemoveAmbiantStart then return end
+        if not IsValid( InvestigationMod.AmbiantSound ) then return end
 
-	RemoveAmbiantStart = CurTime()
-	hook.Add( "Think", "Think.InvestigationMod.RemoveAmbiantSound", function()
-		if not RemoveAmbiantStart or not isnumber( RemoveAmbiantStart ) or not IsValid( InvestigationMod.AmbiantSound ) then hook.Remove( "Think", "Think.InvestigationMod.RemoveAmbiantSound" ) return end
+        RemoveAmbiantStart = CurTime()
+        hook.Add( "Think", "Think.InvestigationMod.RemoveAmbiantSound", function()
+                if not isnumber( RemoveAmbiantStart ) or not IsValid( InvestigationMod.AmbiantSound ) then
+                        hook.Remove( "Think", "Think.InvestigationMod.RemoveAmbiantSound" )
+                        return
+                end
 
-		local lerpSoundVolume = math.Clamp( CurTime() - RemoveAmbiantStart, 0, 1 )
+                local lerpSoundVolume = math.Clamp( CurTime() - RemoveAmbiantStart, 0, 1 )
 
-		if 1 - lerpSoundVolume <= 0 then
-			InvestigationMod.AmbiantSound:Stop()
-			RemoveAmbiantStart = nil
-			return
-		end
+                if lerpSoundVolume >= 1 then
+                        InvestigationMod.AmbiantSound:Stop()
+                        InvestigationMod.AmbiantSound = nil
+                        RemoveAmbiantStart = nil
+                        hook.Remove( "Think", "Think.InvestigationMod.RemoveAmbiantSound" )
+                        return
+                end
 
-		InvestigationMod.AmbiantSound:SetVolume( 1 - lerpSoundVolume )
-	end )
+                InvestigationMod.AmbiantSound:SetVolume( 1 - lerpSoundVolume )
+        end )
 end
 
 function InvestigationMod.Bloom( iMode )
