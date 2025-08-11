@@ -355,43 +355,43 @@ function InvestigationMod.DrawAction( eEntity, vPosition, aAngle, sAction, iKey,
 
     -- prevent starting actions on other entities while an interface is focused
     local isFocusedOnEntity = not LocalPlayer().IsFocused or not InvestigationMod.MoveView
-            or InvestigationMod.MoveView.linkedEntity == eEntity
+	    or InvestigationMod.MoveView.linkedEntity == eEntity
     local shouldCheck = ( fDistanceAim > 0.95 or LocalPlayer().IsFocused ) and fDistance < 15000 and isFocusedOnEntity
 
     if keyDown and shouldCheck then
-                if not actionFocused or fDistanceAim > ( actionFocused.fDistanceAim or -1 ) then
-                        if actionFocused and ( actionFocused.Entity ~= eEntity or actionFocused.Action ~= sAction ) then
-                                local prev = InvestigationMod.Actions[ actionFocused.Entity ]
-                                if prev and prev[ actionFocused.Action ] then
-                                        prev[ actionFocused.Action ].actionClic = 0
-                                end
-                        end
+		if not actionFocused or fDistanceAim > ( actionFocused.fDistanceAim or -1 ) then
+			if actionFocused and ( actionFocused.Entity ~= eEntity or actionFocused.Action ~= sAction ) then
+				local prev = InvestigationMod.Actions[ actionFocused.Entity ]
+				if prev and prev[ actionFocused.Action ] then
+					prev[ actionFocused.Action ].actionClic = 0
+				end
+			end
 
-                        InvestigationMod.HasActionFocused = {
-                                Entity = eEntity,
-                                Action = sAction,
-                                fDistanceAim = fDistanceAim
-                        }
-                        actionFocused = InvestigationMod.HasActionFocused
-                end
+			InvestigationMod.HasActionFocused = {
+				Entity = eEntity,
+				Action = sAction,
+				fDistanceAim = fDistanceAim
+			}
+			actionFocused = InvestigationMod.HasActionFocused
+		end
     end
 
     if actionFocused and actionFocused.Entity == eEntity and actionFocused.Action == sAction then
-                if keyDown and shouldCheck and not InvestigationMod.Actions[ eEntity ][ sAction ].stopTime then
-                        if math.min( actionClic + 0.005, 1 ) >= 1 then
-                                InvestigationMod.Actions[ eEntity ][ sAction ].stopTime = CurTime()
-                                fPostAction( eEntity )
-                                surface.PlaySound( "investigationmod/press.mp3" )
-                                InvestigationMod.HasActionFocused = nil
-                        else
-                                InvestigationMod.Actions[ eEntity ][ sAction ].actionClic = math.min( actionClic + 0.005, 1 )
-                        end
-                else
-                        InvestigationMod.HasActionFocused = nil
-                        InvestigationMod.Actions[ eEntity ][ sAction ].actionClic = math.max( actionClic - 0.01, 0 )
-                end
+		if keyDown and shouldCheck and not InvestigationMod.Actions[ eEntity ][ sAction ].stopTime then
+			if math.min( actionClic + 0.005, 1 ) >= 1 then
+				InvestigationMod.Actions[ eEntity ][ sAction ].stopTime = CurTime()
+				fPostAction( eEntity )
+				surface.PlaySound( "investigationmod/press.mp3" )
+				InvestigationMod.HasActionFocused = nil
+			else
+				InvestigationMod.Actions[ eEntity ][ sAction ].actionClic = math.min( actionClic + 0.005, 1 )
+			end
+		else
+			InvestigationMod.HasActionFocused = nil
+			InvestigationMod.Actions[ eEntity ][ sAction ].actionClic = math.max( actionClic - 0.01, 0 )
+		end
     else
-                InvestigationMod.Actions[ eEntity ][ sAction ].actionClic = math.max( actionClic - 0.01, 0 )
+		InvestigationMod.Actions[ eEntity ][ sAction ].actionClic = math.max( actionClic - 0.01, 0 )
     end
 
 	local fPercentageMove = math.Clamp( ( CurTime() - ( InvestigationMod.Actions[ eEntity ][ sAction ].stopTime or InvestigationMod.Actions[ eEntity ][ sAction ].startTime ) ) / 0.4, 0, 1 )
@@ -407,7 +407,7 @@ function InvestigationMod.DrawAction( eEntity, vPosition, aAngle, sAction, iKey,
 
 	local fPercentageDistance = math.Clamp( ( fPercentageMove < 1 and fPercentageMove or 1 - ( ( fDistance - 6000) / 20000 ) ), 0, 1 )
 	if fDistanceAim < 0.99 then
-    	fPercentageDistance = fPercentageDistance * math.Clamp( fDistanceAim / 0.99, 0, 1 )
+	fPercentageDistance = fPercentageDistance * math.Clamp( fDistanceAim / 0.99, 0, 1 )
     end
 
 	local aAngle = bRelative and Angle( aAngle.p, bFollowPlayerAngle and LocalPlayer():GetAngles().y - 90 or aAngle.y, aAngle.r ) or eEntity:LocalToWorldAngles( aAngle )
@@ -540,13 +540,20 @@ function InvestigationMod.GetInventory()
 end
 
 function InvestigationMod.PlayAmbiantSound()
-	if IsValid( InvestigationMod.AmbiantSound ) then return end
+	if IsValid( InvestigationMod.AmbiantSound ) or InvestigationMod.AmbiantSoundLoading then return end
 
-	sound.PlayFile( "sound/investigationmod/ambiance.wav", "", function( station ) 
-		if IsValid( InvestigationMod.AmbiantSound ) then
+	InvestigationMod.AmbiantSoundLoading = true
+
+	sound.PlayFile( "sound/investigationmod/ambiance.wav", "", function( station )
+		if not InvestigationMod.AmbiantSoundLoading then
+			if IsValid( station ) then
+				station:Stop()
+			end
 			return
 		end
-		
+
+		InvestigationMod.AmbiantSoundLoading = nil
+
 		if ( IsValid( station ) ) then
 			InvestigationMod.AmbiantSound = station
 			station:SetVolume( 1 )
@@ -577,27 +584,28 @@ end
 
 local RemoveAmbiantStart
 function InvestigationMod.StopAmbiantSound()
-        if not IsValid( InvestigationMod.AmbiantSound ) then return end
+	InvestigationMod.AmbiantSoundLoading = nil
+	if not IsValid( InvestigationMod.AmbiantSound ) then return end
 
-        RemoveAmbiantStart = CurTime()
-        hook.Add( "Think", "Think.InvestigationMod.RemoveAmbiantSound", function()
-                if not isnumber( RemoveAmbiantStart ) or not IsValid( InvestigationMod.AmbiantSound ) then
-                        hook.Remove( "Think", "Think.InvestigationMod.RemoveAmbiantSound" )
-                        return
-                end
+	RemoveAmbiantStart = CurTime()
+	hook.Add( "Think", "Think.InvestigationMod.RemoveAmbiantSound", function()
+		if not isnumber( RemoveAmbiantStart ) or not IsValid( InvestigationMod.AmbiantSound ) then
+			hook.Remove( "Think", "Think.InvestigationMod.RemoveAmbiantSound" )
+			return
+		end
 
-                local lerpSoundVolume = math.Clamp( CurTime() - RemoveAmbiantStart, 0, 1 )
+		local lerpSoundVolume = math.Clamp( CurTime() - RemoveAmbiantStart, 0, 1 )
 
-                if lerpSoundVolume >= 1 then
-                        InvestigationMod.AmbiantSound:Stop()
-                        InvestigationMod.AmbiantSound = nil
-                        RemoveAmbiantStart = nil
-                        hook.Remove( "Think", "Think.InvestigationMod.RemoveAmbiantSound" )
-                        return
-                end
+		if lerpSoundVolume >= 1 then
+			InvestigationMod.AmbiantSound:Stop()
+			InvestigationMod.AmbiantSound = nil
+			RemoveAmbiantStart = nil
+			hook.Remove( "Think", "Think.InvestigationMod.RemoveAmbiantSound" )
+			return
+		end
 
-                InvestigationMod.AmbiantSound:SetVolume( 1 - lerpSoundVolume )
-        end )
+		InvestigationMod.AmbiantSound:SetVolume( 1 - lerpSoundVolume )
+	end )
 end
 
 function InvestigationMod.Bloom( iMode )

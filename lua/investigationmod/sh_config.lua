@@ -94,6 +94,6 @@ InvestigationMod.Configuration.CanBurnBody = true
 ]]
 hook.Add( "PostGamemodeLoaded", "PostGamemodeLoaded.InvestigationMod", function() -- Do not touch this line
 
-	InvestigationMod:AddJob( TEAM_POLICE )
+	InvestigationMod:AddJob( TEAM_DETECTIVE )
 
 end ) -- Do not touch this line
