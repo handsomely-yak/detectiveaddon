@@ -5,6 +5,7 @@ util.AddNetworkString( "InvestigationMod.SendDoorPrints" )
 util.AddNetworkString( "InvestigationMod.BodyToMorgue" )
 util.AddNetworkString( "InvestigationMod.TakeFingerprint" )
 util.AddNetworkString( "InvestigationMod.BurnBody" )
+util.AddNetworkString( "InvestigationMod.TeamChanged" )
 
 net.Receive( "InvestigationMod.BurnBody", function( len, pCaller )
 	if not pCaller:Alive() then return end

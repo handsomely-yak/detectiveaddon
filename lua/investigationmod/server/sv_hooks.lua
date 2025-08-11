@@ -2,6 +2,11 @@ InvestigationMod.FootSteps = {}
 InvestigationMod.DoorFingerprint = {}
 InvestigationMod.DeathBodies = {}
 
+hook.Add( "OnPlayerChangedTeam", "InvestigationMod.TeamChanged", function( pPlayer )
+        net.Start( "InvestigationMod.TeamChanged" )
+        net.Send( pPlayer )
+end )
+
 --[[
 	Doing this for the AMM compatibility
 ]]

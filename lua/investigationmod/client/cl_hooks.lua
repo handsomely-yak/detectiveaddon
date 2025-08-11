@@ -6,6 +6,20 @@ local tMaterials = {
 
 local pLocalPlayer
 
+net.Receive( "InvestigationMod.TeamChanged", function()
+        if InvestigationMod:IsAllowedToInvestigate( LocalPlayer() ) then return end
+
+        for eEntity, _ in pairs( InvestigationMod.Actions or {} ) do
+                InvestigationMod.Actions[ eEntity ] = nil
+        end
+
+        for eEntity, _ in pairs( InvestigationMod.Informations or {} ) do
+                InvestigationMod.Informations[ eEntity ] = nil
+        end
+
+        InvestigationMod.ClearView()
+end )
+
 hook.Add( "InitPostEntity", "InitPostEntity.InvestigationMod", function()
 	pLocalPlayer = LocalPlayer()
 end )
